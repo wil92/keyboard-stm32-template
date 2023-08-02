@@ -26,6 +26,7 @@ TEST (DelTest, isModifierKeyFunction) {
 TEST (DelTest, CheckKeysFunction) {
 
     reportSent = 0;
+    pressedKeysMap.size = 0;
     checkKeys();
     ASSERT_TRUE(reportSent);
 
@@ -92,4 +93,58 @@ TEST (DelTest, CheckKeysFunction) {
     reportSent = 0;
     checkKeys();
     ASSERT_TRUE(reportSent);
+}
+
+TEST (DelTest, InsertValues) {
+
+    Map treap;
+    treap.size = 0;
+
+    insert(&treap, 1, 2);
+    insert(&treap, 2, 3);
+    insert(&treap, 4, 12);
+    insert(&treap, 7, 45);
+
+    ASSERT_EQ (treap.size, 4);
+
+    ASSERT_EQ (treap.k[0], 1);ASSERT_EQ (treap.d[0], 2);
+    ASSERT_EQ (treap.k[1], 2);ASSERT_EQ (treap.d[1], 3);
+    ASSERT_EQ (treap.k[2], 4);ASSERT_EQ (treap.d[2], 12);
+    ASSERT_EQ (treap.k[3], 7);ASSERT_EQ (treap.d[3], 45);
+}
+
+TEST (DelTest, RemoveValues) {
+
+    struct Map treap;
+    treap.size = 0;
+
+    insert(&treap, 1, 2);
+    insert(&treap, 2, 3);
+    insert(&treap, 4, 12);
+    insert(&treap, 7, 45);
+
+    erase(&treap, 2);
+    erase(&treap, 4);
+
+    insert(&treap, 3, 98);
+    insert(&treap, 5, 21);
+
+    ASSERT_EQ (treap.size, 4);
+
+    ASSERT_EQ (treap.k[0], 1);ASSERT_EQ (treap.d[0], 2);
+    ASSERT_EQ (treap.k[1], 7);ASSERT_EQ (treap.d[1], 45);
+    ASSERT_EQ (treap.k[2], 3);ASSERT_EQ (treap.d[2], 98);
+    ASSERT_EQ (treap.k[3], 5);ASSERT_EQ (treap.d[3], 21);
+}
+
+TEST (DelTest, InsertValuesToLimit) {
+
+    Map treap;
+    treap.size = 0;
+
+    for (int i = 0; i < 20; ++i) {
+        insert(&treap, 7, 45);
+    }
+
+    ASSERT_EQ (treap.size, MAX_SIZE);
 }

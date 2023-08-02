@@ -17,7 +17,6 @@
 #ifndef DEL_CPP
 #define DEL_CPP
 
-#include "map.cpp"
 #include <cstdint>
 #include <cstring>
 
@@ -25,7 +24,7 @@
 // -------------------------------------------
 // ---------STRUCTURAL CODE-------------------
 // -------------------------------------------
-typedef struct _USBD_HandleTypeDef {
+typedef struct _USBD_HandleTypeDef { // NOLINT(bugprone-reserved-identifier)
     uint8_t id;
 } USBD_HandleTypeDef;
 USBD_HandleTypeDef hUsbDeviceFS = USBD_HandleTypeDef();
@@ -64,12 +63,20 @@ uint16_t pin;
 GPIO_PinState state;
 int timeReadPin = 0;
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnusedParameter"
+
 void HAL_GPIO_WritePin(GPIO_TypeDef *a, uint16_t b, GPIO_PinState c) {
+#pragma clang diagnostic pop
     pin = b;
     state = c;
 }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnusedParameter"
+
 bool HAL_GPIO_ReadPin(GPIO_TypeDef *a, uint16_t b) {
+#pragma clang diagnostic pop
     if (timeReadPin == 0) {
         return (state == GPIO_PIN_SET && pin == GPIO_PIN_8 && b == GPIO_PIN_3)
                || (state == GPIO_PIN_SET && pin == GPIO_PIN_7 && b == GPIO_PIN_1);
@@ -83,11 +90,15 @@ bool HAL_GPIO_ReadPin(GPIO_TypeDef *a, uint16_t b) {
     }
 }
 
-bool reportSent = 0;
+int reportSent = 0;
+
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "UnusedParameter"
 
 uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev,
                             uint8_t *report,
                             uint16_t len) {
+#pragma clang diagnostic pop
     reportSent = 1;
     return 0;
 }
@@ -110,6 +121,45 @@ uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev,
 #define OUTPUT_PINS 5
 #define INPUT_PINS 4
 #define base 107
+#define MAX_SIZE 10
+
+// MAP STUFF BEGIN
+typedef struct Map {
+    int k[MAX_SIZE];
+    int d[MAX_SIZE];
+    int size;
+} Map;
+
+int has(Map *m, int kk) {
+    for (int i = 0; i < m->size; i++) {
+        if (m->k[i] == kk) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void insert(Map *m, int kk, int dd) {
+    if (m->size < MAX_SIZE) {
+        m->k[m->size] = kk;
+        m->d[m->size] = dd;
+        m->size++;
+    }
+}
+
+void erase(Map *m, int kk) {
+    for (int i = 0; i < m->size; i++) {
+        if (m->k[i] == kk) {
+            for (int j = i; j < m->size - 1; j++) {
+                m->k[j] = m->k[j + 1];
+                m->d[j] = m->d[j + 1];
+            }
+            m->size--;
+            return;
+        }
+    }
+}
+// MAP STUFF END
 
 Map pressedKeysMap;
 uint8_t keyBoardHIDsub[8];
@@ -128,23 +178,28 @@ bool isModifierKey(int k) {
 }
 
 // GRID BEGIN
-GPIO_TypeDef *outputPins_GPIOx[OUTPUT_PINS] = { GPIOB, GPIOB, GPIOB, GPIOB,
-                                                GPIOB };
-uint16_t outputPins_GPIO_Pin[OUTPUT_PINS] = { GPIO_PIN_8, GPIO_PIN_7,
-                                              GPIO_PIN_6,
-                                              GPIO_PIN_5, GPIO_PIN_4 };
+GPIO_TypeDef *outputPins_GPIOx[OUTPUT_PINS] = {GPIOB, GPIOB, GPIOB, GPIOB,
+                                               GPIOB};
+uint16_t outputPins_GPIO_Pin[OUTPUT_PINS] = {GPIO_PIN_8, GPIO_PIN_7,
+                                             GPIO_PIN_6,
+                                             GPIO_PIN_5, GPIO_PIN_4};
 
-GPIO_TypeDef *inputPins_GPIOx[INPUT_PINS] = { GPIOB, GPIOB, GPIOB, GPIOA };
-uint16_t inputPins_GPIO_Pin[INPUT_PINS] = { GPIO_PIN_3, GPIO_PIN_1, GPIO_PIN_0,
-                                            GPIO_PIN_15 };
+GPIO_TypeDef *inputPins_GPIOx[INPUT_PINS] = {GPIOB, GPIOB, GPIOB, GPIOA};
+uint16_t inputPins_GPIO_Pin[INPUT_PINS] = {GPIO_PIN_3, GPIO_PIN_1, GPIO_PIN_0,
+                                           GPIO_PIN_15};
 
-uint8_t keyMapping[OUTPUT_PINS][INPUT_PINS] = { { 0x53, 0x60, 0x5E, 0x62 }, {
-                                                  0x54, 0x61, 0x59, 0x63 }, { 0x55, 0x57, 0x5A, 0x00 }, { 0x56, 0x5C,
-                                                              0x5B, 0x00 }, { 0x5F, 0x5D, 0x28, 0x00 } };
+uint8_t keyMapping[OUTPUT_PINS][INPUT_PINS] = {{0x53, 0x60, 0x5E, 0x62},
+                                               {
+                                                0x54, 0x61, 0x59, 0x63},
+                                               {0x55, 0x57, 0x5A, 0x00},
+                                               {0x56, 0x5C,
+                                                            0x5B, 0x00},
+                                               {0x5F, 0x5D, 0x28, 0x00}};
 // GRID END
 
 void checkKeys() {
     Map newPressedKeysMap;
+    newPressedKeysMap.size = 0;
 
     for (int i = 0; i < OUTPUT_PINS; i++) {
         HAL_GPIO_WritePin(outputPins_GPIOx[i], outputPins_GPIO_Pin[i],
@@ -152,7 +207,7 @@ void checkKeys() {
         for (int j = 0; j < INPUT_PINS; j++) {
             if (HAL_GPIO_ReadPin(inputPins_GPIOx[j], inputPins_GPIO_Pin[j])) {
                 // add key to the pressed keys
-                newPressedKeysMap.insert(i * base + j, keyMapping[i][j]);
+                insert(&newPressedKeysMap, i * base + j, keyMapping[i][j]);
             }
         }
         HAL_GPIO_WritePin(outputPins_GPIOx[i], outputPins_GPIO_Pin[i],
@@ -162,18 +217,19 @@ void checkKeys() {
     // check un-pressed keys
     int toRemove[MAX_SIZE], toRemoveCount = 0;
     for (int i = 0; i < pressedKeysMap.size; i++) {
-        if (!newPressedKeysMap.has(pressedKeysMap.k[i])) {
+        if (!has(&newPressedKeysMap, pressedKeysMap.k[i])) {
             toRemove[toRemoveCount++] = pressedKeysMap.k[i];
         }
     }
     for (int i = 0; i < toRemoveCount; i++) {
-        pressedKeysMap.erase(toRemove[i]);
+        erase(&pressedKeysMap, toRemove[i]);
     }
 
     // check pressed keys
     for (int i = 0; i < newPressedKeysMap.size; i++) {
-        if (!pressedKeysMap.has(newPressedKeysMap.k[i])) {
-            pressedKeysMap.insert(newPressedKeysMap.k[i], newPressedKeysMap.d[i]);
+        if (!has(&pressedKeysMap, newPressedKeysMap.k[i])) {
+            insert(&pressedKeysMap, newPressedKeysMap.k[i],
+                   newPressedKeysMap.d[i]);
         }
     }
 
@@ -181,7 +237,7 @@ void checkKeys() {
     setKeyBoardKeys();
 
     // send keyBoardHIDsub if there is changes
-    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*) &keyBoardHIDsub,
+    USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t * ) & keyBoardHIDsub,
                         sizeof(keyBoardHIDsub));
 }
 

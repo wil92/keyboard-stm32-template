@@ -7,6 +7,6 @@ add_executable(treap main.cpp)
 
 include_directories(src)
 add_subdirectory(src)
-target_link_libraries(treap treap_lib del_lib)
+target_link_libraries(treap del_lib)
 
 add_subdirectory(tests)
